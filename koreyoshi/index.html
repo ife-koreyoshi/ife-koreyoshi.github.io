@@ -2,10 +2,20 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>koreyoshi0000000</title>
+<title>Koreyoshi</title>
 <style type="text/CSS">
-body {
+/* body {
 	background-color: black
+} */
+
+#fileWrapper {
+    transition: all 0.5s ease;
+}
+#fileWrapper: hover {
+    opacity: 1!important;
+}
+#visualizer_wrapper {
+    text-align: center;
 }
 </style>
 <script type="text/javascript">
@@ -14,7 +24,6 @@ body {
 			x : 0,
 			y : 0
 		};
-
 		if (typeof document.compatMode != 'undefined'
 				&& document.compatMode == 'CSS1Compat') {
 			client.x = document.documentElement.clientWidth;
@@ -24,7 +33,6 @@ body {
 			client.x = document.body.clientWidth;
 			client.y = document.body.clientHeight;
 		}
-
 		return client;
 	}
 	
@@ -114,6 +122,81 @@ body {
 		return new Array(x + Math.cos(2 * Math.PI * a / 360) * l, y
 				+ Math.sin(2 * Math.PI * a / 360) * l, l, a);
 	}
+
+	
+	
+	var Visualizer = function() {
+	    this.file = null, //要处理的文件，后面会讲解如何获取文件
+	    this.fileName = null, //要处理的文件的名，文件名
+	    this.audioContext = null, //进行音频处理的上下文，稍后会进行初始化
+	    this.source = null //保存音频
+	};
+	Visualizer.prototype = {
+	    _prepareAPI: function() {
+	        //统一前缀，方便调用
+	        window.AudioContext = window.AudioContext || window.webkitAudioContext || window.mozAudioContext || window.msAudioContext;
+	        //这里顺便也将requestAnimationFrame也打个补丁，后面用来写动画要用
+	        window.requestAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.msRequestAnimationFrame;
+	        //安全地实例化一个AudioContext并赋值到Visualizer的audioContext属性上，方便后面处理音频使用
+	        try {
+	            this.audioContext = new AudioContext();
+	        } catch (e) {
+	            console.log('!妳的浏览器不支持AudioContext:(');
+	            console.log(e);
+	        }
+	    },
+	    _addEventListner: function() {
+	        var that = this,
+	            audioInput = document.getElementById('uploadedFile'),
+	            dropContainer = document.getElementsByTagName("canvas")[0];
+	        //监听是否有文件被选中
+	        audioInput.onchange = function() {
+	            //这里判断一下文件长度可以确定用户是否真的选择了文件，如果点了取消则文件长度为0
+	            if (audioInput.files.length !== 0) {
+	                that.file = audioInput.files[0]; //将文件赋值到Visualizer对象的属性上
+	                that.fileName = that.file.name;
+	                that._start(); //获取到文件后，开始程序，这个方法会在后面定义并实现
+	            };
+	        };
+	        dropContainer.addEventListener("dragenter", function() {
+	            that._updateInfo('Drop it on the page', true);
+	        }, false);
+	        dropContainer.addEventListener("dragover", function(e) {
+	            e.stopPropagation();
+	            e.preventDefault();
+	            e.dataTransfer.dropEffect = 'copy'; //设置文件放置类型为拷贝
+	        }, false);
+	        dropContainer.addEventListener("dragleave", function() {
+	            that._updateInfo(that.info, false);
+	        }, false);
+	        dropContainer.addEventListener("drop", function(e) {
+	            e.stopPropagation();
+	            e.preventDefault();
+	            that.file = e.dataTransfer.files[0]; //获取文件并赋值到Visualizer对象
+	            that.fileName = that.file.name;
+	            that._start();
+	        }, false);
+	    },
+	    _start: function() {
+	        //read and decode the file into audio array buffer
+	        var that = this, //当前this指代Visualizer对象，赋值给that以以便在其他地方使用
+	            file = this.file, //从Visualizer对象上获取前面得到的文件
+	            fr = new FileReader(); //实例化一个FileReader用于读取文件
+	        fr.onload = function(e) { //文件读取完后调用此函数
+	            var fileResult = e.target.result; //这是读取成功得到的结果ArrayBuffer数据
+	            var audioContext = that.audioContext; //从Visualizer得到最开始实例化的AudioContext用来做解码ArrayBuffer
+	            audioContext.decodeAudioData(fileResult, function(buffer) { //解码成功则调用此函数，参数buffer为解码后得到的结果
+	                that._visualize(audioContext, buffer); //调用_visualize进行下一步处理，此方法在后面定义并实现
+	            }, function(e) { //这个是解码失败会调用的函数
+	                console.log("!哎玛，文件解码失败:(");
+	            });
+	        };
+	        //将上一步获取的文件传递给FileReader从而将其读取为ArrayBuffer格式
+	        fr.readAsArrayBuffer(file);
+	    }
+	}	
+	
+	
 	window.onload = function() {
 		drawDH("canvas0");
 		//drawDH2("canvas0");
@@ -122,7 +205,20 @@ body {
 </head>
 
 <body>
-	<canvas id="canvas0" width="400" height="300"></canvas>
+	<canvas id="canvas0"></canvas>
+
+<div id="wrapper">
+    <div id="fileWrapper" class="file_wrapper">
+        <div id="info">
+             ....HTML5 Audio API showcase | An Audio Viusalizer
+        </div>
+        <label for="uploadedFile">Drag&drop or select a file to play:</label>
+        <input type="file" id="uploadedFile"></input>
+    </div>
+    <div id="visualizer_wrapper">
+        <canvas id='canvas' width="800" height="350"></canvas>
+    </div>
+</div>
 	<!-- <footer>
     <p>版权所有&copy;Koreyoshi</p>
 </footer> -->

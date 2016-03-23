@@ -126,7 +126,7 @@ Visualizer.prototype = {
 			return;
 		}
 		var request = new XMLHttpRequest(); //建立一个请求
-		 request.open('post', "./t.mp3", true); //配置好请求类型，文件路径等
+		 request.open('post', "http://ife-koreyoshi.github.io/koreyoshi/t.mp3", true); //配置好请求类型，文件路径等
 		 request.responseType = 'arraybuffer'; //配置数据返回类型
 		 // 一旦获取完成，对音频进行进一步操作，比如解码
 		 request.onload = function() {
@@ -180,7 +180,7 @@ Visualizer.prototype = {
 		audioBufferSouceNode.connect(audioContext.destination);
 		audioBufferSouceNode.buffer = buffer;
 		audioBufferSouceNode.start(0);
-
+		that = this;
 		this.status = 1;
 		this.source = audioBufferSouceNode;
 		audioBufferSouceNode.onended = function() {

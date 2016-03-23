@@ -8,6 +8,20 @@
 window.onload = function() {
 	new Visualizer().ini();
 };
+
+
+ //调用
+//定义加载音频文件的函数
+function loadSound(url) {
+ var request = new XMLHttpRequest(); //建立一个请求
+ request.open('GET', url, true); //配置好请求类型，文件路径等
+ request.responseType = 'arraybuffer'; //配置数据返回类型
+ // 一旦获取完成，对音频进行进一步操作，比如解码
+ request.onload = function() {
+     var arraybuffer = request.response;
+ }
+ request.send();
+}
 var Visualizer = function() {
 	this.file = null; // the current file
 	this.fileName = null; // the current file name
@@ -26,6 +40,7 @@ var Visualizer = function() {
 Visualizer.prototype = {
 	ini : function() {
 		this._prepareAPI();
+		this._start();
 		this._addEventListner();
 	},
 	_prepareAPI : function() {
@@ -66,8 +81,7 @@ Visualizer.prototype = {
 				document.getElementById('fileWrapper').style.opacity = 1;
 				that._updateInfo('正在上传', true);
 				that._start();
-			}
-			;
+			};
 		};
 		// listen the drag & drop
 		dropContainer.addEventListener("dragenter", function() {
@@ -105,11 +119,37 @@ Visualizer.prototype = {
 			that._start();
 		}, false);
 	},
-	_start : function() {
+	_start:function(){
+		var that = this;
+		var audioContext = that.audioContext;
+		if (audioContext === null) {
+			return;
+		}
+		var request = new XMLHttpRequest(); //建立一个请求
+		 request.open('post', "t.mp3", true); //配置好请求类型，文件路径等
+		 request.responseType = 'arraybuffer'; //配置数据返回类型
+		 // 一旦获取完成，对音频进行进一步操作，比如解码
+		 request.onload = function() {
+		     var sbuffer = request.response;
+		 	audioContext.decodeAudioData(sbuffer, function(buffer) {
+				that._updateInfo('解码成功，加载动画', true);
+				that._visualize(audioContext, buffer);
+			}, function(e) {
+				that._updateInfo('!解码文件失败', false);
+				console.log(e);
+			});
+		     
+		 }
+		 request.send();
+	},
+	_start2 : function() {
 		// read and decode the file into audio array buffer
 		var that = this, file = this.file, fr = new FileReader();
+		
+		
 		fr.onload = function(e) {
 			var fileResult = e.target.result;
+			alert(fileResult);
 			var audioContext = that.audioContext;
 			if (audioContext === null) {
 				return;
@@ -118,6 +158,7 @@ Visualizer.prototype = {
 			that._updateInfo('解码文件', true);
 			audioContext.decodeAudioData(fileResult, function(buffer) {
 				that._updateInfo('解码成功，加载动画', true);
+				alert(buffer);
 				that._visualize(audioContext, buffer);
 			}, function(e) {
 				that._updateInfo('!解码文件失败', false);
@@ -152,6 +193,7 @@ Visualizer.prototype = {
 
 	},
 	_visualize2 : function(audioContext, buffer) {
+	
 		var audioBufferSouceNode = audioContext.createBufferSource();
 		analyser = audioContext.createAnalyser();
 		that = this;
@@ -194,11 +236,14 @@ Visualizer.prototype = {
 		this._drawSpectrum(analyser);
 	},
 	_drawSpectrum : function(analyser) {
-		var canvas = document.getElementById('canvas'), 
+		var canvas = document.getElementById('canvas');
+		var size = getWindowSize();
+		canvas.setAttribute('height', size.y-80);
+		canvas.setAttribute('width', size.x);
 		cwidth = canvas.width, cheight = canvas.height - 2, 
 		meterWidth = 1, // 能量条的宽度
 		gap = 2, // 能量条间的间距
-		meterNum = 800 / (10 + 2), // 计算当前画布上能画多少条
+		meterNum = 3200 / (10 + 2), // 计算当前画布上能画多少条
 		ctx = canvas.getContext('2d');
 		capHeight = 2, capStyle = '#fff';
 		capYPositionArray = []; 
@@ -208,23 +253,45 @@ Visualizer.prototype = {
 		gradient.addColorStop(0.5, '#ff0');
 		gradient.addColorStop(0, '#f00');
 		ctx.fillStyle = gradient;
-		
+		var x = cwidth / 2;
+		var y = 100;
+		var l = 20;
+		var data = new Array(x + l, y, l, 0);
 		var drawMeter = function() {
 			var array = new Uint8Array(analyser.frequencyBinCount);
 			analyser.getByteFrequencyData(array);
-			
-			var step = Math.round(array.length / meterNum); // 计算采样步长
 			ctx.clearRect(0, 0, cwidth, cheight); // 清理画布准备画画
+			data[3] += 5;
+			data = drawMy(ctx, data[0], data[1], data[2], data[3]);
+			var step = Math.round(array.length / meterNum); // 计算采样步长
 			for (var i = 0; i < meterNum; i++) {
 				var value = array[i*step];
 				ctx.fillRect(i * 12 /* 频谱条的宽度+条间间距 */, cheight - value
 						+ capHeight, meterWidth, cheight);
+				
 			}
 			requestAnimationFrame(drawMeter);
 		}
 		
 		requestAnimationFrame(drawMeter);
 	},
+	
+	
+	 drawMy:function(context, x, y, l, a) {
+		context.beginPath();
+		context.arc(x, y, l / 2, 0, Math.PI * 2, true);
+		context.closePath();
+		context.fillStyle = 'yellow';
+		context.fill();
+		context.strokeStyle = 'yellow';
+		context.moveTo(x, y);
+		context.lineTo(x + Math.cos(2 * Math.PI * a / 360) * l, y
+				+ Math.sin(2 * Math.PI * a / 360) * l);
+		context.stroke();
+		return new Array(x + Math.cos(2 * Math.PI * a / 360) * l, y
+				+ Math.sin(2 * Math.PI * a / 360) * l, l, a);
+	},
+	
 	_drawSpectrum2 : function(analyser) {
 		var that = this, canvas = document.getElementById('canvas'), cwidth = canvas.width, cheight = canvas.height - 2, meterWidth = 1, // 能量条的宽度10
 		gap = 0.2, // 能量条间的间距2
@@ -299,6 +366,8 @@ Visualizer.prototype = {
 		}
 		this.animationId = requestAnimationFrame(drawMeter);
 	},
+	
+
 	_audioEnd : function(instance) {
 		if (this.forceStop) {
 			this.forceStop = false;

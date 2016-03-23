@@ -6,19 +6,23 @@
         <title>HTML5音频分析例子</title>
         <link type="text/css" rel="stylesheet" href="style/style.css">
     </head>
-    <body>
+    <body>  <!-- <audio src="test.m4a"  id ='a' controls="controls">
+		Your browser does not support the audio tag.
+	</audio> -->
         <div id="wrapper">
-            <div id="fileWrapper" class="file_wrapper">
+          <div id="fileWrapper" class="file_wrapper">
                 <div id="info">
                    HTML5音频分析播放器
                 </div>
                 <label for="uploadedFile">拖拽文件至这里播放:</label>
-                <input type="file" id="uploadedFile"></input>
-            </div>
+                <input type="file" id="uploadedFile" value="11"></input>
+              
+            </div> 
             <div id="visualizer_wrapper">
                 <canvas id='canvas' width="800" height="350"></canvas>
             </div>
         </div>
+        <script type="text/javascript" src="js/tank.js"></script>
         <script type="text/javascript" src="js/html5_audio_visualizer.js"></script>
     </body>
 </html>
